@@ -5,7 +5,7 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
  */
-import { normalize } from '@angular-devkit/core';
+import { normalize, strings } from '@angular-devkit/core';
 import {
   Rule,
   SchematicContext,
@@ -17,13 +17,16 @@ import {
   template,
   url,
 } from '@angular-devkit/schematics';
-import 'rxjs/add/operator/merge';
 import * as ts from 'typescript';
-import * as stringUtils from '../strings';
-import { findNode, getDecoratorMetadata } from '../utility/ast-utils';
-import { InsertChange } from '../utility/change';
-import { AppConfig, getAppFromConfig, getConfig } from '../utility/config';
-import { findBootstrapModuleCall, findBootstrapModulePath } from '../utility/ng-ast-utils';
+import {
+  findNode,
+  getDecoratorMetadata,
+  getSourceNodes,
+  insertAfterLastOccurrence
+} from '@schematics/angular/utility/ast-utils';
+import { InsertChange } from '@schematics/angular/utility/change';
+import { AppConfig, getAppFromConfig, getConfig } from '@schematics/angular/utility/config';
+import { findBootstrapModuleCall, findBootstrapModulePath } from '@schematics/angular/utility/ng-ast-utils';
 import { Schema as UniversalOptions } from './schema';
 
 
@@ -51,6 +54,7 @@ function updateConfigFile(options: UniversalOptions): Rule {
       test: options.test,
       tsconfig: tsCfg,
       testTsconfig: testTsCfg,
+      polyfills: undefined,
     };
     if (options.name) {
       serverApp.name = options.name;
@@ -161,11 +165,27 @@ function addDependencies(): Rule {
   };
 }
 
+function updateGitignore(options: UniversalOptions): Rule {
+  return (host: Tree) => {
+    const ignorePath = normalize('/.gitignore');
+    const buffer = host.read(ignorePath);
+    if (buffer === null) {
+      // Assumption is made that there is no git repository.
+      return host;
+    } else {
+      const content = buffer.toString();
+      host.overwrite(ignorePath, `${content}\n${options.outDir}`);
+    }
+
+    return host;
+  };
+}
+
 export default function (options: UniversalOptions): Rule {
   return (host: Tree, context: SchematicContext) => {
     const templateSource = apply(url('./files'), [
       template({
-        ...stringUtils,
+        ...strings,
         ...options as object,
         stripTsExtension: (s: string) => { return s.replace(/\.ts$/, ''); },
       }),
@@ -177,6 +197,7 @@ export default function (options: UniversalOptions): Rule {
       updateConfigFile(options),
       wrapBootstrapCall(options),
       addServerTransition(options),
+      updateGitignore(options),
     ])(host, context);
   };
 }
