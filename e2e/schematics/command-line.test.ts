@@ -17,15 +17,15 @@ describe('Command line', () => {
         'apps/myapp/src/main.ts',
         `
       import '../../../libs/mylib';
-      import '@nrwl/lazylib';
-      import '@nrwl/mylib/deep';
-      import '@nrwl/myapp';
-      import '@nrwl/myapp/main';
+      import '@proj/lazylib';
+      import '@proj/mylib/deep';
+      import '@proj/myapp';
+      import '@proj/myapp/main';
     `
       );
 
       const out = runCLI('lint --type-check', { silenceError: true });
-      expect(out).toContain('library imports must start with @nrwl/');
+      expect(out).toContain('library imports must start with @proj/');
       expect(out).toContain('imports of lazy-loaded libraries are forbidden');
       expect(out).toContain('deep imports into libraries are forbidden');
       expect(out).toContain('imports of apps are forbidden');
@@ -34,7 +34,7 @@ describe('Command line', () => {
   );
 
   it(
-    'nx-migrate should run migrations',
+    'update should run migrations',
     () => {
       newProject();
       updateFile(
@@ -48,12 +48,40 @@ describe('Command line', () => {
         };
       `
       );
-      const out = runCommand('npm run nx-migrate');
-      expect(out).toContain('Test migration');
-      expect(out).toContain('Running test migration');
-      expect(out).toContain('All migrations run successfully');
+      const checkOut = runCommand('npm run update:check');
+      expect(checkOut).toContain('Run "npm run update" to run the following migrations');
+      expect(checkOut).toContain('20200101-test-migration');
 
-      expect(runCommand('npm run nx-migrate')).toContain('No migrations to run');
+      const migrateOut = runCommand('npm run update');
+      expect(migrateOut).toContain('Test migration');
+      expect(migrateOut).toContain('Running test migration');
+      expect(migrateOut).toContain(
+        `The latestMigration property in .angular-cli.json has been set to "20200101-test-migration".`
+      );
+
+      updateFile(
+        'node_modules/@nrwl/schematics/migrations/20200102-test-migration.js',
+        `
+        exports.default = {
+          description: 'Test migration2',
+          run: function() {
+            console.log('Running test migration');
+          }
+        };
+      `
+      );
+
+      const checkOut2 = runCommand('npm run update:check');
+      expect(checkOut2).toContain('Run "npm run update" to run the following migrations');
+      expect(checkOut2).toContain('20200102-test-migration');
+
+      const skipOut = runCommand('npm run update:skip');
+      expect(skipOut).toContain(
+        `The latestMigration property in .angular-cli.json has been set to "20200102-test-migration".`
+      );
+
+      expect(runCommand('npm run update:check')).not.toContain('IMPORTANT');
+      expect(runCommand('npm run update')).toContain('No migrations to run');
     },
     1000000
   );
@@ -66,7 +94,7 @@ describe('Command line', () => {
       newApp('myapp2');
       newLib('mylib');
 
-      updateFile('apps/myapp/src/app/app.component.spec.ts', `import '@nrwl/mylib';`);
+      updateFile('apps/myapp/src/app/app.component.spec.ts', `import '@proj/mylib';`);
 
       const affectedApps = runCommand('npm run affected:apps -- --files="libs/mylib/index.ts"');
       expect(affectedApps).toContain('myapp');
@@ -86,6 +114,7 @@ describe('Command line', () => {
     () => {
       newProject();
       newApp('myapp');
+      newLib('mylib');
       updateFile(
         'apps/myapp/src/main.ts',
         `
@@ -107,14 +136,26 @@ describe('Command line', () => {
     `
       );
 
+      updateFile(
+        'libs/mylib/index.ts',
+        `
+         const x = 1111;
+    `
+      );
+      updateFile(
+        'libs/mylib/src/mylib.module.ts',
+        `
+         const y = 1111;
+    `
+      );
+
       try {
-        // this will group it by app, so all three files will be "marked"
-        runCommand('npm run -s format:check -- --files="apps/myapp/src/app/app.module.ts" --libs-and-apps');
+        // this will group it by lib, so all three files will be "marked"
+        runCommand('npm run -s format:check -- --files="libs/mylib/index.ts" --libs-and-apps');
         fail('boom');
       } catch (e) {
-        expect(e.stdout.toString()).toContain('apps/myapp/src/main.ts');
-        expect(e.stdout.toString()).toContain('apps/myapp/src/app/app.module.ts');
-        expect(e.stdout.toString()).toContain('apps/myapp/src/app/app.component.ts');
+        expect(e.stdout.toString()).toContain('libs/mylib/index.ts');
+        expect(e.stdout.toString()).toContain('libs/mylib/src/mylib.module.ts');
       }
 
       try {

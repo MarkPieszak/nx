@@ -134,6 +134,6 @@ describe('ngrx', () => {
         },
         appTree
       )
-    ).toThrow('Property "/module" is required but missing.');
+    ).toThrow("should have required property 'module'");
   });
 });

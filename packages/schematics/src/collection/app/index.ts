@@ -11,10 +11,11 @@ import {
   Rule,
   template,
   Tree,
-  url
+  url,
+  SchematicContext
 } from '@angular-devkit/schematics';
 import { Schema } from './schema';
-import * as stringUtils from '@schematics/angular/strings';
+import {strings} from '@angular-devkit/core';
 import { addImportToModule, insert, toFileName } from '@nrwl/schematics';
 import * as ts from 'typescript';
 import { addBootstrapToModule } from '@schematics/angular/utility/ast-utils';
@@ -22,6 +23,7 @@ import { insertImport } from '@schematics/angular/utility/route-utils';
 import { addApp, serializeJson, cliConfig, readCliConfigFile } from '../utility/fileutils';
 import { addImportToTestBed } from '../utility/ast-utils';
 import { offsetFromRoot } from '../utility/common';
+import {FormatFiles, wrapIntoFormat} from '../utility/tasks';
 
 interface NormalizedSchema extends Schema {
   fullName: string;
@@ -154,57 +156,60 @@ function updateComponentTemplate(options: NormalizedSchema): Rule {
 }
 
 export default function(schema: Schema): Rule {
-  let npmScope = schema.npmScope;
-  if (!npmScope) {
-    npmScope = readCliConfigFile().project.npmScope;
-  }
+  return wrapIntoFormat(() => {
+    let npmScope = schema.npmScope;
+    if (!npmScope) {
+      npmScope = readCliConfigFile().project.npmScope;
+    }
 
-  const options = normalizeOptions(schema);
-  const templateSource = apply(url('./files'), [
-    template({
-      utils: stringUtils,
-      dot: '.',
-      tmpl: '',
-      offsetFromRoot: offsetFromRoot(options.fullPath),
-      ...(options as object),
-      npmScope
-    })
-  ]);
+    const options = normalizeOptions(schema);
+    const templateSource = apply(url('./files'), [
+      template({
+        utils: strings,
+        dot: '.',
+        tmpl: '',
+        offsetFromRoot: offsetFromRoot(options.fullPath),
+        ...(options as object),
+        npmScope
+      })
+    ]);
 
-  const selector = `${options.prefix}-root`;
-  return chain([
-    branchAndMerge(chain([mergeWith(templateSource)])),
-    externalSchematic('@schematics/angular', 'module', {
-      name: 'app',
-      commonModule: false,
-      flat: true,
-      routing: false,
-      sourceDir: options.fullPath,
-      spec: false
-    }),
-    externalSchematic('@schematics/angular', 'component', {
-      name: 'app',
-      selector: selector,
-      sourceDir: options.fullPath,
-      flat: true,
-      inlineStyle: options.inlineStyle,
-      inlineTemplate: options.inlineTemplate,
-      spec: !options.skipTests,
-      styleext: options.style,
-      viewEncapsulation: options.viewEncapsulation,
-      changeDetection: options.changeDetection
-    }),
-    updateComponentTemplate(options),
-    addBootstrap(options.fullPath),
-    addNxModule(options.fullPath),
-    addAppToAngularCliJson(options),
-    options.routing ? addRouterRootConfiguration(options.fullPath) : noop()
-  ]);
+    const selector = `${options.prefix}-root`;
+
+    return chain([
+      branchAndMerge(chain([mergeWith(templateSource)])),
+      externalSchematic('@schematics/angular', 'module', {
+        name: 'app',
+        commonModule: false,
+        flat: true,
+        routing: false,
+        sourceDir: options.fullPath,
+        spec: false
+      }),
+      externalSchematic('@schematics/angular', 'component', {
+        name: 'app',
+        selector: selector,
+        sourceDir: options.fullPath,
+        flat: true,
+        inlineStyle: options.inlineStyle,
+        inlineTemplate: options.inlineTemplate,
+        spec: !options.skipTests,
+        styleext: options.style,
+        viewEncapsulation: options.viewEncapsulation,
+        changeDetection: options.changeDetection
+      }),
+      updateComponentTemplate(options),
+      addBootstrap(options.fullPath),
+      addNxModule(options.fullPath),
+      addAppToAngularCliJson(options),
+      options.routing ? addRouterRootConfiguration(options.fullPath) : noop()
+    ]);
+  });
 }
 
 function normalizeOptions(options: Schema): NormalizedSchema {
   const name = toFileName(options.name);
   const fullName = options.directory ? `${toFileName(options.directory)}/${name}` : name;
-  const fullPath = `apps/${fullName}/${options.sourceDir}`;
-  return { ...options, name, fullName, fullPath };
+  const fullPath = `apps/${fullName}/src`;
+  return { ...options, sourceDir: 'src', name, fullName, fullPath };
 }

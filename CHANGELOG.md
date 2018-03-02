@@ -2,6 +2,71 @@
 
 The `nrwl/nx` and `nrwl/schematics` packages are released together. You must use the same version of the two packages.
 
+# 0.8.0
+
+## Features
+
+Nx no longer uses a patched version of the CLI--we switched to using `@angular/cli@1.7.1`. We also renamed the nx-migrate command into `update` to align with the CLI.
+
+* [Switch to @angular/cli 1.7](https://github.com/nrwl/nx/commit/acdeb1b71c14e3bc7e5bd2bc925640ad7d0aa24d)
+* [Add update, update:skip, and update:check commands](https://github.com/nrwl/nx/commit/2fb62597514f1c82e4d80d75a7d60d11229d5aa3)
+
+## Fixes
+
+* [Fix format:write --libs-and-apps](https://github.com/nrwl/nx/commit/feeaba1a4b8d827a71731d919740135464d6e049)
+* [Change format to default to format-all when no patterns are detected](https://github.com/nrwl/nx/commit/58e99ab04d8e9505285bdcf31014f3774a6f900a)
+
+## Cleanup
+
+* [Remove the version property](https://github.com/nrwl/nx/commit/24063f02464b6da38e003841e04820dcc347e876)
+* [Use schematic context to format the generated code](https://github.com/nrwl/nx/commit/e7481a790f5becffc46e794ec46c0835a2114319)
+
+# 0.7.4
+
+## Features
+
+* [Change generate effect tests to use toBeObservable](https://github.com/nrwl/nx/commit/222efe2f2630b02f6fdb11f560c9158cd4f51d75)
+
+## Fixes
+
+* [Base projectPath on the full path instead of the current working directory of the process](https://github.com/nrwl/nx/commit/545f2ff13902a635b9c26854e9687790adff0616)
+* [Ammend command in script errors](https://github.com/nrwl/nx/commit/9128fa8be1e31525acb6043ff87af73b6b884aaa)
+
+# 0.7.2
+
+## Features
+
+* [Added a post install script that run nx-migrate:check](https://github.com/nrwl/nx/commit/93a6b4e94be4b1b591eb017e77b79c777bc23deb)
+* [Updated create-nx-workspace to support yarn](https://github.com/nrwl/nx/commit/e5b247b573cef0c1cf5cc5163d030dbf514f4dff)
+
+## Cleanup
+
+* [Cleaned up the output of nx-migrate](https://github.com/nrwl/nx/commit/7ab14e3b26e0e91d660ad5bb454dccb21b9745cf)
+
+# 0.7.0
+
+## Features
+
+* [Add nx-migrate:check and nx-migrate:skip scripts](d7ba9fdc1b9f4208db6de32184e953d00f6f064f)
+
+# 0.7.0-beta.1
+
+## Features
+
+* [Switch to Angular 5.2 and CLI 1.6.5](https://github.com/nrwl/nx/commit/172c18dc9b84f7ac3019694e4a0eeeb40dd1bc26)
+
+# 0.6.18
+
+## Bug Fixes
+
+* [Fixed affected: commands. Continue traversing within irrelevant PropertyAssignment nodes](https://github.com/nrwl/nx/commit/2293e28bd031efa80566228dddc202bc437c2b03)
+* [Make affected and format windows-friendly](https://github.com/nrwl/nx/commit/9609fc675031bd4dca285ceb942a71d995d1ee7b)
+
+## Cleanup
+
+* [Clean up tslint configuration](https://github.com/nrwl/nx/commit/828e4fe75da66dc41790e55a7738192940a04cbf)
+* [Add a migration updating the version of prettier](https://github.com/nrwl/nx/commit/847a249980c3505845a8c597de8e9a3d78766f8b)
+
 # 0.6.13
 
 ## Bug Fixes

@@ -1,32 +1,18 @@
-import {
-  apply,
-  branchAndMerge,
-  chain,
-  externalSchematic,
-  mergeWith,
-  move,
-  Rule,
-  template,
-  Tree,
-  url,
-  schematic
-} from '@angular-devkit/schematics';
+import { apply, branchAndMerge, chain, mergeWith, Rule, Tree, url } from '@angular-devkit/schematics';
 import { Schema } from './schema';
 import * as path from 'path';
+import { join } from 'path';
 import {
   angularCliSchema,
   angularCliVersion,
   latestMigration,
   ngrxVersion,
   nxVersion,
-  prettierVersion,
-  schematicsVersion
+  prettierVersion, routerStoreVersion, schematicsVersion,
 } from '../utility/lib-versions';
 import * as fs from 'fs';
-import { join } from 'path';
-import { serializeJson, updateJsonFile } from '../utility/fileutils';
+import { copyFile, serializeJson, updateJsonFile } from '../utility/fileutils';
 import { toFileName } from '@nrwl/schematics';
-import { offsetFromRoot } from '../utility/common';
 
 function updatePackageJson() {
   return (host: Tree) => {
@@ -50,7 +36,7 @@ function updatePackageJson() {
       packageJson.dependencies['@ngrx/store'] = ngrxVersion;
     }
     if (!packageJson.dependencies['@ngrx/router-store']) {
-      packageJson.dependencies['@ngrx/router-store'] = ngrxVersion;
+      packageJson.dependencies['@ngrx/router-store'] = routerStoreVersion;
     }
     if (!packageJson.dependencies['@ngrx/effects']) {
       packageJson.dependencies['@ngrx/effects'] = ngrxVersion;
@@ -68,10 +54,6 @@ function updatePackageJson() {
       packageJson.devDependencies['prettier'] = prettierVersion;
     }
 
-    packageJson.scripts['apps:affected'] = './node_modules/.bin/nx affected apps';
-    packageJson.scripts['build:affected'] = './node_modules/.bin/nx affected build';
-    packageJson.scripts['e2e:affected'] = './node_modules/.bin/nx affected e2e';
-
     packageJson.scripts['affected:apps'] = './node_modules/.bin/nx affected apps';
     packageJson.scripts['affected:build'] = './node_modules/.bin/nx affected build';
     packageJson.scripts['affected:e2e'] = './node_modules/.bin/nx affected e2e';
@@ -80,7 +62,11 @@ function updatePackageJson() {
     packageJson.scripts['format:write'] = './node_modules/.bin/nx format write';
     packageJson.scripts['format:check'] = './node_modules/.bin/nx format check';
 
-    packageJson.scripts['nx-migrate'] = './node_modules/.bin/nx migrate';
+    packageJson.scripts['update'] = './node_modules/.bin/nx update';
+    packageJson.scripts['update:check'] = './node_modules/.bin/nx update check';
+    packageJson.scripts['update:skip'] = './node_modules/.bin/nx update skip';
+
+    packageJson.scripts['postinstall'] = './node_modules/.bin/nx postinstall';
 
     host.overwrite('package.json', serializeJson(packageJson));
     return host;
@@ -252,21 +238,6 @@ function moveFiles(options: Schema) {
   };
 }
 
-function copyAngularCliTgz() {
-  return (host: Tree) => {
-    copyFile(path.join(__dirname, '..', 'application', 'files', '__directory__', '.angular_cli.tgz'), '.');
-    return host;
-  };
-}
-
-function copyFile(file: string, target: string) {
-  const f = path.basename(file);
-  const source = fs.createReadStream(file);
-  const dest = fs.createWriteStream(path.resolve(target, f));
-  source.pipe(dest);
-  source.on('error', e => console.error(e));
-}
-
 function dedup(array: any[]): any[] {
   const res = [];
 
@@ -307,7 +278,6 @@ export default function(schema: Schema): Rule {
     updateAngularCLIJson(options),
     updateTsConfigsJson(options),
     updateProtractorConf(),
-    updateTsLintJson(options),
-    copyAngularCliTgz()
+    updateTsLintJson(options)
   ]);
 }
